@@ -1,0 +1,69 @@
+{
+  "$schema": "https://claude.ai/schemas/settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(uv:*)",
+      "Bash(uvx:*)",
+      "Bash(ruff:*)",
+      "Bash(pyright:*)",
+      "Bash(pytest:*)",
+      "Bash(python:*)",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(aws s3 ls:*)",
+      "Bash(aws s3 cp:*)",
+      "Bash(aws s3 sync:*)",
+      "Bash(aws s3api:*)",
+      "Bash(aws athena:*)",
+      "Bash(aws glue list-*)",
+      "Bash(aws glue get-*)",
+      "Bash(aws lambda list-*)",
+      "Bash(aws lambda get-*)",
+      "Bash(aws ce:*)",
+      "Bash(aws sts get-caller-identity)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(jq:*)",
+      "Bash(tree:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf /:*)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~:*)",
+      "Bash(rm -rf $HOME:*)",
+      "Bash(aws ec2 run-instances:*)",
+      "Bash(aws redshift create-cluster:*)",
+      "Bash(aws rds create-db-instance:*)",
+      "Bash(aws sagemaker create-endpoint:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/pre_create_layout_check.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/post_edit_ruff.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://claude.ai/schemas/settings.json",
+  "_comment": "Copy this file to .claude/settings.local.json and customise. .gitignore excludes settings.local.json so your overrides never get committed. Use this for per-machine paths, additional allowlists for commands you trust on YOUR machine but not in general, or to enable destructive commands during specific work sessions.",
+
+  "permissions": {
+    "allow": [
+      "Bash(open:*)",
+      "Bash(code:*)"
+    ]
+  }
+}

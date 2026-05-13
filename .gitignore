@@ -1,0 +1,163 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Secrets — NEVER commit these
+# ─────────────────────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p12
+.aws/
+secrets/
+# Kaggle credentials (in case anyone drops the file in the repo)
+kaggle.json
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Claude Code per-developer overrides
+# settings.local.json is intentionally per-machine; example template is committed.
+# ─────────────────────────────────────────────────────────────────────────────
+.claude/settings.local.json
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Python
+# ─────────────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Tooling caches
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.pytype/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Type checker
+.dmypy.json
+dmypy.json
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Power BI — local artefacts and caches; we commit the .pbix and the .tmdl files,
+# nothing else.
+# ─────────────────────────────────────────────────────────────────────────────
+**/.pbi/
+**/cache.abf
+**/Snapshot.tmdl
+**/localSettings.json
+# Power BI Desktop creates lock files when opened
+**/*.pbix.lock
+# .pbip auto-cache folder
+**/_pbi_local/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AWS local artefacts
+# ─────────────────────────────────────────────────────────────────────────────
+# SAM build outputs
+.aws-sam/
+# CloudFormation packaged templates
+packaged-template.yaml
+# Glue Job local outputs
+glue-output/
+# Athena query results downloaded locally
+athena-results/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# IDE / editor
+# ─────────────────────────────────────────────────────────────────────────────
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OS
+# ─────────────────────────────────────────────────────────────────────────────
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+# Linux
+*~
+.directory
+.Trash-*
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Logs
+# ─────────────────────────────────────────────────────────────────────────────
+*.log
+logs/
+log/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Project-specific
+# ─────────────────────────────────────────────────────────────────────────────
+# Local data downloads (never commit Olist CSVs — use S3)
+data/
+*.csv
+*.parquet
+*.zip
+# Exception: small fixtures used by tests are committed
+!tests/fixtures/**/*.csv
+!tests/fixtures/**/*.parquet
+!tests/fixtures/**/*.json
+
+# Temporary working files
+tmp/
+temp/
+scratch/
+
+# pre-commit's local hooks
+.pre-commit-cache/

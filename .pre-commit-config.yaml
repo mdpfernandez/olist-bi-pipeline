@@ -1,0 +1,64 @@
+# pre-commit hooks — run automatically on `git commit`.
+# Install once with: uv run pre-commit install
+# Run manually on all files: uv run pre-commit run --all-files
+
+repos:
+  # ───────────────────────────────────────────────────────────────────────
+  # General hygiene
+  # ───────────────────────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: \.tmdl$  # TMDL files have meaningful trailing whitespace in some lines
+      - id: end-of-file-fixer
+        exclude: \.(pbix|pbip)$
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+        exclude: ^\.vscode/  # VS Code allows comments in JSON
+      - id: check-added-large-files
+        args: ["--maxkb=10240"]   # 10 MB — .pbix files can be large but flag if huge
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+
+  # ───────────────────────────────────────────────────────────────────────
+  # Ruff — lint + format Python
+  # ───────────────────────────────────────────────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.7.4
+    hooks:
+      - id: ruff
+        args: ["--fix", "--exit-non-zero-on-fix"]
+      - id: ruff-format
+
+  # ───────────────────────────────────────────────────────────────────────
+  # Detect AWS / generic secrets accidentally committed
+  # ───────────────────────────────────────────────────────────────────────
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ["--baseline", ".secrets.baseline"]
+        exclude: |
+          (?x)^(
+              uv\.lock|
+              .*\.tmdl|
+              tests/fixtures/.*
+          )$
+
+  # ───────────────────────────────────────────────────────────────────────
+  # Local hooks — pyright on src/, only on push (slower)
+  # ───────────────────────────────────────────────────────────────────────
+  - repo: local
+    hooks:
+      - id: pyright
+        name: pyright (strict on src/)
+        entry: uv run pyright src
+        language: system
+        types: [python]
+        pass_filenames: false
+        stages: [pre-push]   # only on `git push`, not every commit

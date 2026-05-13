@@ -1,0 +1,202 @@
+[project]
+name = "olist-bi-pipeline"
+version = "0.1.0"
+description = "End-to-end data pipeline on AWS for the Brazilian Olist e-commerce dataset, with a Power BI dashboard."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Marianela Fernandez", email = "fernandezmarianeladp@gmail.com" },
+]
+keywords = [
+    "aws",
+    "athena",
+    "glue",
+    "lambda",
+    "eventbridge",
+    "power-bi",
+    "data-pipeline",
+    "lakehouse",
+    "medallion",
+    "olist",
+]
+
+# Runtime dependencies — what the pipeline needs to run.
+dependencies = [
+    # AWS SDK + helpers
+    "boto3>=1.35.0,<2",
+    "botocore>=1.35.0,<2",
+    # Data manipulation
+    "pandas>=2.2.0,<3",
+    "numpy>=1.26.0,<3",
+    "pyarrow>=17.0.0,<20",
+    # Configuration & validation
+    "pydantic>=2.8.0,<3",
+    "pydantic-settings>=2.4.0,<3",
+    "python-dotenv>=1.0.0,<2",
+    # HTTP for FX rates enrichment (Frankfurter API)
+    "httpx>=0.27.0,<1",
+    # Structured logging
+    "structlog>=24.4.0,<26",
+    # Dataset download
+    "kaggle>=1.6.0,<2",
+]
+
+[project.optional-dependencies]
+# Optional group for Glue Job local development.
+# Install with: uv sync --extra glue
+glue = [
+    "pyspark>=3.5.0,<4",
+    "awswrangler>=3.9.0,<4",
+]
+
+[dependency-groups]
+# Dev dependencies — installed with `uv sync` by default (uv convention).
+dev = [
+    # Linting and formatting
+    "ruff>=0.6.0,<1",
+    # Type checking
+    "pyright>=1.1.380,<2",
+    # Testing
+    "pytest>=8.3.0,<9",
+    "pytest-cov>=5.0.0,<7",
+    "pytest-mock>=3.14.0,<4",
+    "moto[s3,glue,lambda,athena,events,iam,logs]>=5.0.0,<6",
+    # Pre-commit framework (the hooks themselves are configured in .pre-commit-config.yaml)
+    "pre-commit>=3.8.0,<5",
+]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Build system — uv uses hatchling by default; we keep that.
+# ─────────────────────────────────────────────────────────────────────────────
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/olist_pipeline"]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Ruff — linting + formatting
+# Replaces black, isort, flake8, pyupgrade, pylint and friends.
+# ─────────────────────────────────────────────────────────────────────────────
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+extend-exclude = [
+    ".venv",
+    "notebooks",
+    "powerbi",
+]
+
+[tool.ruff.lint]
+# Selected rule families: keep tight enough to be useful, loose enough to not pick fights.
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort (import sorting)
+    "B",   # flake8-bugbear (likely bugs)
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade (modernise syntax)
+    "N",   # pep8-naming
+    "SIM", # flake8-simplify
+    "RUF", # ruff-specific rules
+    "ARG", # flake8-unused-arguments
+    "PTH", # flake8-use-pathlib (prefer pathlib over os.path)
+    "DTZ", # flake8-datetimez (timezone-aware datetimes only)
+    "ERA", # eradicate (no commented-out code)
+    "PL",  # pylint
+    "TID", # flake8-tidy-imports
+]
+ignore = [
+    "E501",   # line too long — handled by formatter, not the linter
+    "PLR0913", # too many arguments — fine for AWS handlers
+    "PLR2004", # magic numbers — too noisy for data work
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests can have unused arguments (fixtures) and "magic" assertions.
+"tests/**/*.py" = ["ARG", "PLR2004", "PLR0913"]
+# __init__.py is allowed to re-export.
+"**/__init__.py" = ["F401"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["olist_pipeline"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Pyright — type checking
+# Strict mode on src/, basic mode on tests/.
+# ─────────────────────────────────────────────────────────────────────────────
+[tool.pyright]
+include = ["src", "tests"]
+exclude = [
+    "**/.venv",
+    "**/__pycache__",
+    "notebooks",
+    "powerbi",
+]
+pythonVersion = "3.12"
+pythonPlatform = "All"
+typeCheckingMode = "strict"
+reportMissingTypeStubs = false
+reportUnknownMemberType = false  # boto3 types are dynamic; relax this
+reportUnknownArgumentType = false
+reportUnknownVariableType = false
+reportUnknownLambdaType = false
+
+# Tests can be a bit looser.
+executionEnvironments = [
+    { root = "tests", reportPrivateUsage = false, reportUnusedFunction = false },
+]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Pytest
+# ─────────────────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--showlocals",
+]
+markers = [
+    "unit: fast tests, no IO, no AWS — run on every commit",
+    "integration: tests with mocked AWS (moto) or testcontainers",
+    "slow: tests that take more than 1 second",
+]
+filterwarnings = [
+    "error",                                          # all warnings are errors by default
+    "ignore::DeprecationWarning:botocore.*",          # boto3 internal noise
+    "ignore::DeprecationWarning:moto.*",              # moto internal noise
+]
+
+# Default: run only unit tests. Override with `pytest -m integration` etc.
+# Empty string means no filter — let CI use `-m unit` for fast feedback.
+
+[tool.coverage.run]
+source = ["src/olist_pipeline"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+fail_under = 70
+show_missing = true
+skip_covered = true
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]
