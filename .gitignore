@@ -11,6 +11,8 @@
 secrets/
 # Kaggle credentials (in case anyone drops the file in the repo)
 kaggle.json
+.kaggle/
+access_token
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Claude Code per-developer overrides
