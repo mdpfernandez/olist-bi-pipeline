@@ -174,9 +174,38 @@ This is enforced by the `core.aws.tag_dict()` helper, used by every provisioning
 | Athena workgroup             | `olist-<env>`                       | `olist-dev`                      |
 | Curated tables               | `fact_*` / `dim_*`                  | `fact_orders`, `dim_customers`   |
 | Staging tables               | `staging_<source>`                  | `staging_orders`                 |
-| Raw tables (Glue Catalog)    | `raw_<source>`                      | `raw_orders`                     |
+| Raw tables (Glue Catalog)    | `raw_source_<source>`               | `raw_source_orders` (see note below) |
 
 Snake_case for tables, kebab-case for AWS resource names (matches AWS ecosystem conventions).
+
+**Note on raw Catalog tables.** Glue Crawler derives table names from the deepest non-partition path segment. Our raw layout uses `source=<table>/ingested_at=<date>/` (Hive-style partitioning), so the Crawler sees `source=<table>` as the table-level prefix and names the table `source_<table>` after sanitising the `=` sign. Combined with `--table-prefix raw_` we get `raw_source_orders` etc., not the cleaner `raw_orders` that an earlier draft of this doc anticipated. We accept the verbose names rather than pre-creating tables manually (see open question below).
+
+**Note on raw Catalog columns.** Glue's auto-classifier (built-in and custom CSV with `ContainsHeader=PRESENT`) does not reliably detect the header row on the Olist gzipped CSVs (mixed-quote rows defeat the matcher), so raw Catalog tables show columns as `col0, col1, ...`. This is acceptable because the staging Glue Job reads raw via `spark.read.csv(header=True)` directly and does NOT rely on Catalog column metadata — it only uses the Catalog for partition discovery, which the Crawler does correctly (`ingested_at` is the partition key). If ad-hoc Athena queries over raw ever become useful, the fix is to pre-create the nine raw tables with explicit `aws glue create-table` calls and configure the Crawler to update partitions only.
+
+## Athena workgroup configuration (Tier B decision)
+
+ADR-0001 decides *that* we use Athena over Redshift. This section records *how* the workgroup is configured — operational settings, not a reversible-with-effort architectural commitment, so Tier B rather than a new ADR. Provisioned by [`infra/create-athena-workgroup.sh`](../infra/create-athena-workgroup.sh).
+
+| Setting                          | Value                                   | Why                                                                 |
+| -------------------------------- | --------------------------------------- | ------------------------------------------------------------------- |
+| Workgroup name                   | `olist-dev`                             | Matches the `olist-<env>` naming convention above.                  |
+| Result location                  | `s3://olist-athena-results-*/`          | Dedicated bucket; one CSV + metadata file per query.                |
+| Result encryption                | `SSE_S3`                                | Matches bucket-level default encryption.                            |
+| `BytesScannedCutoffPerQuery`     | 1 GiB (1073741824 bytes)                | Hard guardrail: any query scanning more is cancelled before billing. A `SELECT *` over an unpartitioned table is the failure mode this prevents. |
+| `EnforceWorkGroupConfiguration`  | `true`                                  | Clients (Power BI, console, CLI) cannot override the cap or redirect results to another bucket. |
+| `PublishCloudWatchMetricsEnabled`| `false`                                 | CloudWatch custom metrics cost ~$0.30/metric/month above free tier. Off for portfolio; flip on if query observability is needed. |
+
+Cost: $0/month for the workgroup itself. Query cost is $5/TB scanned, first 1 TB/month on the free tier. Result CSVs are a few KB each — negligible storage.
+
+## Staging table registration (Tier B decision)
+
+Staging (and later curated) tables are registered with explicit `CREATE EXTERNAL TABLE` DDL run through Athena — **not** discovered by a Glue Crawler. Provisioned by [`infra/create-staging-tables.sh`](../infra/create-staging-tables.sh).
+
+**Why not a Crawler here.** Crawlers earn their keep on the raw layer, where schema-on-read CSVs need inference. Staging is the opposite: the Glue Job writes typed Parquet with an embedded schema, so there is nothing to *infer* — only to *declare*. Declaring it explicitly is $0 (no ON_DEMAND resource to run and remember), makes the DDL the single source of truth for the table shape, and removes the `col0..col7`-style surprises the raw Crawler produced.
+
+**Partition discovery via projection, not `MSCK REPAIR`.** Staging tables are partitioned by `year`/`month`. Rather than re-registering partitions after every Glue Job run (`MSCK REPAIR TABLE` or `ALTER TABLE ADD PARTITION`), the tables use [partition projection](https://docs.aws.amazon.com/athena/latest/ug/partition-projection.html): the DDL declares the partition ranges (`year` 2016–2030, `month` 1–12) and a `storage.location.template`, and Athena computes the partition paths on the fly. Zero maintenance, no post-run step that can be forgotten.
+
+**Partition-value format gotcha.** Spark writes integer partition columns *without* zero-padding (`month=9`, `month=10` — not `month=09`). The projection declares no `digits` property so Athena matches the bare integers. If a query returns 0 rows while S3 clearly holds data, suspect a padding mismatch first: check the real paths with `aws s3 ls s3://<staging-bucket>/source=orders/` and add `'projection.month.digits'='2'` if they turn out to be padded.
 
 ## Production deltas — what this project does differently from a real system
 
