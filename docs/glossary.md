@@ -468,3 +468,50 @@ de aplicarlo. Viene con Git for Windows.
 ### Kaggle API
 Servicio HTTP de Kaggle para descargar datasets. Auth con token único (`KAGGLE_API_TOKEN`,
 prefijo `KGAT_`) — el formato viejo `KAGGLE_USERNAME` + `KAGGLE_KEY` está deprecado.
+
+---
+
+## 7. Git / control de versiones
+
+> Modelo mental: pensá en `main` como **la versión publicada** del proyecto, y en una
+> **branch** como **un borrador aparte** donde trabajás sin tocar lo publicado. El **PR**
+> es el pedido formal de "publicar el borrador", y el **merge** es el acto de publicarlo.
+
+### Commit
+Una "foto" guardada de tus cambios, con un mensaje que explica qué hiciste. Es la unidad
+mínima de la historia. Cada commit tiene un hash (ej: `30146b3`) que lo identifica.
+
+### Branch (rama)
+Una línea de desarrollo paralela. Partís de `main`, creás una rama (ej:
+`feat/athena-staging-query`), y commiteás ahí sin afectar `main`. Si algo sale mal, `main`
+queda intacto. Cuando el trabajo está listo, lo integrás de vuelta a `main` (merge).
+
+`main` es la rama principal (la "oficial"). Trabajar siempre en ramas y no commitear directo
+a `main` es la práctica estándar: mantiene lo publicado siempre en estado revisable.
+
+### Remote / `origin` / push
+- **Remote**: una copia del repo en un servidor (acá, GitHub). El remote default se llama
+  **`origin`**.
+- **`push`**: subir tus commits locales al remote. Hasta que no hacés `push`, tu trabajo vive
+  solo en tu máquina.
+
+### Pull Request (PR)
+Una **solicitud de incorporación**: le pedís a GitHub "quiero meter los commits de esta rama
+dentro de `main`". El PR es el **punto de revisión** — muestra el diff completo (qué líneas
+cambian), corre los checks automáticos si los hay, y permite comentar antes de integrar.
+
+Analogía neutral: como mandar un documento con "control de cambios" a aprobación antes de que
+entre en la versión maestra. En un equipo, otra persona lo revisa; trabajando sola (este
+proyecto), te lo aprobás vos misma, pero el PR igual deja registro de qué entró y por qué.
+
+### Merge (fusión)
+El acto de **integrar** los commits de la rama en `main`. Cierra el PR. Tres formas:
+- **Merge commit** (default): trae todos los commits de la rama y agrega un commit de fusión.
+  Preserva la historia completa (útil cuando los commits son significativos).
+- **Squash**: aplasta todos los commits de la rama en **uno solo** sobre `main`. Historia
+  lineal y limpia (útil cuando la rama tiene muchos commits chiquitos de "wip").
+- **Rebase**: reaplica los commits sobre `main` sin commit de fusión.
+
+### Pull (`git pull`)
+Bajar a tu copia local los cambios que hay en el remote. Después de mergear un PR en GitHub,
+hacés `git checkout main && git pull` para que tu `main` local quede al día.
