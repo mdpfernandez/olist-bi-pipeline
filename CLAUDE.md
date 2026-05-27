@@ -72,6 +72,17 @@ src/olist_pipeline/
 - **`post_edit_ruff.sh`** — runs `ruff check --fix && ruff format` on edited `.py` files. Blocks (exit 2) if errors remain.
 - **`pre_create_layout_check.sh`** — when a new `.py` is created under `src/` or `tests/`, blocks if it falls outside the allowed paths.
 
+## Pre-commit (git hooks)
+
+Separate from the Claude Code hooks above: the repo also runs the **`pre-commit`** framework (`.pre-commit-config.yaml`) on every `git commit`. Install it once per clone with `uv run pre-commit install`. It runs:
+
+- **Hygiene** — trailing-whitespace, end-of-file-fixer, check-yaml/toml/json, `mixed-line-ending --fix=lf`, detect-private-key, check-added-large-files.
+- **ruff** (`--fix`) + **ruff-format** on Python.
+- **detect-secrets** against `.secrets.baseline` — scans staged files for accidentally committed AWS keys/secrets. The baseline must exist or the hook crashes the commit; it is committed to the repo. To update it after a legitimate new finding: `uv run detect-secrets scan --baseline .secrets.baseline`.
+- **pyright** (strict on `src/`) — `pre-push` stage only, not on every commit.
+
+**Windows gotcha:** the `mixed-line-ending` hook rewrites CRLF→LF and **exits non-zero, aborting the first commit attempt**. The file is left fixed in the working tree, so the recovery is just `git add <same files>` and re-run the identical commit — the second attempt passes. This re-stage + recommit cycle is normal, not an error. Don't reach for `--no-verify`.
+
 ## Skills
 
 - **`.claude/skills/aws-cost-discipline/SKILL.md`** — required reading before provisioning any AWS resource (Glue Crawler, Glue Job, Lambda, Athena workgroup, S3 lifecycle rule). Covers the 3 mandatory tags, budget alerts, the "always destroy on Friday" rule, and worked cost estimates per service.
