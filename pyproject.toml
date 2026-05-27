@@ -118,7 +118,9 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 # Tests can have unused arguments (fixtures) and "magic" assertions.
-"tests/**/*.py" = ["ARG", "PLR2004", "PLR0913"]
+# E402: tests guarded by `pytest.importorskip(...)` must import the guarded
+# module *after* the guard, so module-level imports below it are intentional.
+"tests/**/*.py" = ["ARG", "PLR2004", "PLR0913", "E402"]
 # __init__.py is allowed to re-export.
 "**/__init__.py" = ["F401"]
 
