@@ -373,6 +373,33 @@ Config de Spark: `spark.sql.sources.partitionOverwriteMode = "dynamic"`. Cuando 
 
 Se setea en el wrapper del Glue Job: `spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")`.
 
+### `explode` / `UNNEST`
+Operación que convierte **una fila con una columna-lista en N filas**, una por elemento de la
+lista. En Spark: `F.explode(col("items"))`. En SQL estándar: `UNNEST(...)`. Ejemplo: una fila
+con `tags = ["rojo", "azul", "verde"]` se vuelve 3 filas, cada una con un solo tag.
+
+Analogía Qlik: como usar `SubField()` para descomponer un campo concatenado por separador
+(`SubField('a;b;c', ';')`) y que cada subvalor genere su propia fila durante la carga.
+
+No lo usamos aún en el pipeline de Olist (ninguna tabla tiene columnas-lista), pero aparece
+como ejemplo del tipo de transformación que **no encaja** en el patrón del registry parametrizable
+y que requeriría un job aparte si una tabla futura lo necesitara — ver
+[ADR-0008](adr/0008-parametrized-staging-job-with-per-table-registry.md).
+
+### Registry pattern (config-driven transformation)
+Patrón donde **una sola lógica de transformación** corre sobre N tablas, y lo que cambia por
+tabla (PK, columnas a castear, estrategia de partición, etc.) vive en un **registry**: un
+diccionario o archivo de configuración declarativo, una entrada por tabla.
+
+Analogía Qlik: tener 1 script de carga genérico + una tabla de control (Inline Load) con las
+variables específicas de cada app — en vez de copiar el script 20 veces y cambiar los valores
+en cada copia. La lógica vive una sola vez; las diferencias viven en datos.
+
+Es la elección canónica de la industria para este tipo de problema (lo hacen dbt con macros,
+Airflow con TaskGroups parametrizados, frameworks ETL internos de Spotify/Shopify/Uber). En
+este proyecto lo aplicamos a la capa staging — ver
+[ADR-0008](adr/0008-parametrized-staging-job-with-per-table-registry.md).
+
 ---
 
 ## 4. Testing y dev local
